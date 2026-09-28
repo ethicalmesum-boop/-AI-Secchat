@@ -1,6 +1,6 @@
 /* ============================================
-   AI-SecChat - Developer Blueprint Theme
-   Dark Navy + Cyan + Glass Panels
+   AI-SecChat - ChatGPT-Style Blueprint Theme
+   Sidebar Nav + Top Right Badge + Center Logo
    ============================================ */
 
 /* ===== GLOBAL ===== */
@@ -29,19 +29,66 @@
 .main .block-container {
     padding-top: 1rem;
     padding-bottom: 1rem;
-    max-width: 1400px;
+    max-width: 1100px;
     position: relative;
     z-index: 1;
 }
 
-/* ===== HEADINGS ===== */
+/* ===== SIDEBAR (ChatGPT-style) ===== */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0a1832 0%, #061020 100%);
+    border-right: 1px solid rgba(46, 155, 255, 0.2);
+    min-width: 280px !important;
+    max-width: 280px !important;
+}
+
+section[data-testid="stSidebar"] > div:first-child {
+    padding-top: 1rem;
+}
+
+/* ===== SIDEBAR NAV BUTTONS ===== */
+section[data-testid="stSidebar"] .stButton > button {
+    width: 100%;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    background: rgba(10, 25, 50, 0.4) !important;
+    color: #8ba3c4 !important;
+    border: 1px solid rgba(46, 155, 255, 0.1) !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    text-transform: none !important;
+    letter-spacing: 0.3px !important;
+    margin-bottom: 4px !important;
+    box-shadow: none !important;
+    transition: all 0.2s ease !important;
+}
+
+section[data-testid="stSidebar"] .stButton > button:hover {
+    background: rgba(46, 155, 255, 0.15) !important;
+    color: #4FF7FF !important;
+    border-color: rgba(79, 247, 255, 0.3) !important;
+    transform: translateX(3px) !important;
+    box-shadow: 0 0 15px rgba(46, 155, 255, 0.2) !important;
+}
+
+/* Active button (selected page) */
+section[data-testid="stSidebar"] .stButton > button:focus,
+section[data-testid="stSidebar"] .stButton > button:active {
+    background: linear-gradient(90deg, rgba(46, 155, 255, 0.3), rgba(79, 247, 255, 0.15)) !important;
+    color: #4FF7FF !important;
+    border-color: #4FF7FF !important;
+}
+
+/* ===== MAIN HEADINGS ===== */
 h1 {
     background: linear-gradient(90deg, #2E9BFF, #4FF7FF);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     font-family: 'JetBrains Mono', monospace;
     font-weight: 800 !important;
-    font-size: 2.5rem !important;
+    font-size: 2rem !important;
     text-align: center;
     letter-spacing: -1px;
     text-shadow: 0 0 40px rgba(46, 155, 255, 0.5);
@@ -52,7 +99,7 @@ h2 {
     color: #4FF7FF !important;
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700 !important;
-    font-size: 1.4rem !important;
+    font-size: 1.3rem !important;
     letter-spacing: 0.5px;
     padding-bottom: 8px;
     border-bottom: 1px solid rgba(46, 155, 255, 0.2);
@@ -62,67 +109,131 @@ h3 {
     color: #2E9BFF !important;
     font-family: 'JetBrains Mono', monospace;
     font-weight: 600 !important;
-    font-size: 1.1rem !important;
+    font-size: 1rem !important;
     letter-spacing: 0.5px;
 }
 
-/* ===== HERO ===== */
-.hero {
+/* ===== CENTER LOGO ===== */
+.center-logo {
     text-align: center;
-    padding: 15px 0 30px 0;
-    color: #8ba3c4;
-    font-size: 0.95rem;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 1px;
+    padding: 20px 0 10px 0;
 }
 
-.hero b { color: #4FF7FF; font-weight: 600; }
-.hero small {
+.center-logo .shield {
+    font-size: 4rem;
+    filter: drop-shadow(0 0 30px #4FF7FF);
+    animation: glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+    0%, 100% { filter: drop-shadow(0 0 20px #4FF7FF); }
+    50% { filter: drop-shadow(0 0 40px #4FF7FF) drop-shadow(0 0 60px #2E9BFF); }
+}
+
+.center-logo .title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(90deg, #2E9BFF, #4FF7FF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 10px 0 0 0;
+    letter-spacing: -1px;
+}
+
+.center-logo .subtitle {
     color: #5a7391;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: 8px;
+}
+
+/* ===== TEE BADGE (Top Right) ===== */
+.tee-badge {
+    position: fixed;
+    top: 15px;
+    right: 20px;
+    z-index: 999;
+    background: rgba(0, 255, 127, 0.1);
+    border: 1px solid rgba(0, 255, 127, 0.4);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #00ff7f;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    box-shadow: 0 0 20px rgba(0, 255, 127, 0.3);
+    animation: badge-pulse 2s infinite;
+}
+
+.tee-badge .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #00ff7f;
+    border-radius: 50%;
+    margin-right: 6px;
+    box-shadow: 0 0 10px #00ff7f;
+    animation: dot-blink 1.5s infinite;
+}
+
+@keyframes badge-pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 127, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(0, 255, 127, 0.6); }
+}
+
+@keyframes dot-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* ===== SIDEBAR SECTION LABELS ===== */
+.sidebar-label {
+    color: #4a5d7a;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
     letter-spacing: 2px;
     text-transform: uppercase;
+    margin: 20px 0 8px 0;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed rgba(46, 155, 255, 0.15);
 }
 
-/* ===== TABS ===== */
-.stTabs [data-baseweb="tab-list"] {
-    gap: 6px;
-    background: rgba(10, 20, 40, 0.6);
-    backdrop-filter: blur(10px);
-    padding: 6px;
-    border-radius: 10px;
-    border: 1px solid rgba(46, 155, 255, 0.15);
-}
-
-.stTabs [data-baseweb="tab"] {
-    height: 42px;
-    padding: 0 18px;
+/* ===== CHAT HISTORY ITEMS ===== */
+.history-item {
+    background: rgba(10, 25, 50, 0.4);
+    border-left: 2px solid rgba(46, 155, 255, 0.3);
     border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
     font-family: 'JetBrains Mono', monospace;
-    font-weight: 500;
-    font-size: 0.85rem;
-    color: #7a91b0;
-    letter-spacing: 0.5px;
-    transition: all 0.2s ease;
-    background: transparent;
+    font-size: 0.75rem;
+    color: #8ba3c4;
+    transition: all 0.2s;
 }
 
-.stTabs [data-baseweb="tab"]:hover {
-    background: rgba(46, 155, 255, 0.08);
+.history-item:hover {
+    background: rgba(46, 155, 255, 0.1);
+    border-left-color: #4FF7FF;
     color: #4FF7FF;
 }
 
-.stTabs [aria-selected="true"] {
-    background: linear-gradient(135deg, rgba(46, 155, 255, 0.25), rgba(79, 247, 255, 0.15)) !important;
-    color: #4FF7FF !important;
-    box-shadow: 
-        inset 0 0 20px rgba(46, 155, 255, 0.15),
-        0 0 20px rgba(46, 155, 255, 0.2);
-    border: 1px solid rgba(79, 247, 255, 0.3);
+.history-item .type {
+    color: #4FF7FF;
+    font-weight: 600;
+    font-size: 0.7rem;
 }
 
-/* ===== BUTTONS ===== */
-.stButton > button {
+.history-item .time {
+    color: #5a7391;
+    font-size: 0.65rem;
+    float: right;
+}
+
+/* ===== BUTTONS (Main Area) ===== */
+.main .stButton > button {
     background: linear-gradient(135deg, #1a4d8f, #2E9BFF);
     color: #ffffff;
     font-family: 'JetBrains Mono', monospace;
@@ -138,14 +249,13 @@ h3 {
     box-shadow: 0 4px 15px rgba(46, 155, 255, 0.3);
 }
 
-.stButton > button:hover {
+.main .stButton > button:hover {
     transform: translateY(-2px);
     box-shadow: 
         0 8px 25px rgba(46, 155, 255, 0.5),
         0 0 30px rgba(79, 247, 255, 0.3);
     background: linear-gradient(135deg, #2E9BFF, #4FF7FF);
     color: #061020;
-    border-color: #4FF7FF;
 }
 
 /* ===== INPUTS ===== */
@@ -164,14 +274,11 @@ h3 {
 .stTextInput > div > div > input:focus,
 .stTextArea > div > div > textarea:focus {
     border-color: #4FF7FF !important;
-    box-shadow: 
-        0 0 0 3px rgba(79, 247, 255, 0.1),
-        0 0 25px rgba(46, 155, 255, 0.3) !important;
+    box-shadow: 0 0 25px rgba(46, 155, 255, 0.3) !important;
 }
 
 .stTextInput > label,
-.stTextArea > label,
-.stCheckbox > label {
+.stTextArea > label {
     color: #7a91b0 !important;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.8rem !important;
@@ -179,27 +286,7 @@ h3 {
     text-transform: uppercase;
 }
 
-/* ===== SIDEBAR ===== */
-section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0a1832 0%, #061020 100%);
-    border-right: 1px solid rgba(46, 155, 255, 0.2);
-}
-
-section[data-testid="stSidebar"] h1 {
-    font-size: 1.5rem !important;
-    text-align: left;
-}
-
-section[data-testid="stSidebar"] h3 {
-    color: #4FF7FF !important;
-    font-size: 0.85rem !important;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    border-bottom: 1px solid rgba(46, 155, 255, 0.15);
-    padding-bottom: 8px;
-}
-
-/* ===== METRIC ===== */
+/* ===== METRICS ===== */
 [data-testid="stMetric"] {
     background: rgba(10, 25, 50, 0.6);
     backdrop-filter: blur(10px);
@@ -213,7 +300,6 @@ section[data-testid="stSidebar"] h3 {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.7rem !important;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
 }
 
 [data-testid="stMetricValue"] {
@@ -263,13 +349,14 @@ section[data-testid="stSidebar"] h3 {
     border-radius: 8px !important;
     color: #4FF7FF !important;
     font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.85rem !important;
-    padding: 12px 16px !important;
+    font-size: 0.8rem !important;
+    padding: 10px 14px !important;
 }
 
 [data-testid="stExpander"] {
     border: none !important;
     background: transparent !important;
+    margin-bottom: 6px;
 }
 
 /* ===== CODE ===== */
@@ -289,29 +376,11 @@ code {
     margin-top: 40px;
     color: #4a5d7a;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     letter-spacing: 1px;
     text-transform: uppercase;
     border-top: 1px solid rgba(46, 155, 255, 0.1);
 }
-
-/* ===== SYSTEM BLOCK ===== */
-.system-block {
-    background: rgba(10, 25, 50, 0.6);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(46, 155, 255, 0.2);
-    border-radius: 10px;
-    padding: 16px;
-    margin: 10px 0;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.8rem;
-    color: #8ba3c4;
-    line-height: 1.8;
-}
-
-.system-block .ok { color: #00ff7f; }
-.system-block .warn { color: #ffc107; }
-.system-block .err { color: #ff4757; }
 
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar { width: 6px; height: 6px; }

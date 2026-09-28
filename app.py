@@ -1,7 +1,6 @@
 # ============================================
 # AI-SecChat - Main Application
-# TEE (Trusted Execution Environment) enabled
-# Works on Local (Kali) + Streamlit Cloud
+# ChatGPT-style Sidebar Navigation
 # ============================================
 
 import streamlit as st
@@ -10,8 +9,6 @@ import os
 from pathlib import Path
 from google import genai
 from tee_layer import TEELayer
-
-# Crypto Tools import - Hash, Encrypt, Decrypt
 from crypto_tools import (
     generate_hashes, hash_file, crack_hash, identify_hash,
     caesar_encrypt, caesar_decrypt, base64_encrypt, base64_decrypt,
@@ -21,10 +18,9 @@ from crypto_tools import (
 
 
 # ============================================
-# LOAD API KEY (Local + Cloud dono ke liye)
+# LOAD API KEY
 # ============================================
 API_KEY = None
-
 try:
     API_KEY = st.secrets["GEMINI_API_KEY"]
 except:
@@ -33,7 +29,7 @@ except:
     API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not API_KEY:
-    st.error("⚠️ GEMINI_API_KEY not found in secrets or .env file!")
+    st.error("⚠️ GEMINI_API_KEY not found!")
     st.stop()
 
 
@@ -83,12 +79,14 @@ if "history" not in st.session_state:
 if "start_time" not in st.session_state:
     st.session_state.start_time = time.time()
 
+if "page" not in st.session_state:
+    st.session_state.page = "chat"
+
 
 # ============================================
-# AI HELPER (TEE ke through)
+# AI HELPER
 # ============================================
 def ask_ai(prompt, force_local=False, max_retries=3):
-    """TEE layer ke through AI se poochta hai"""
     tee_result = tee.process(prompt, force_local=force_local)
     route = tee_result["route"]
     safe_prompt = tee_result["safe_prompt"]
@@ -97,7 +95,6 @@ def ask_ai(prompt, force_local=False, max_retries=3):
         response = tee.query_local_ai(safe_prompt)
         return response, tee_result
     
-    # Cloud (Gemini) - retry logic
     for attempt in range(max_retries):
         try:
             resp = client.models.generate_content(
@@ -114,133 +111,127 @@ def ask_ai(prompt, force_local=False, max_retries=3):
 
 
 # ============================================
-# SIDEBAR
+# TOP RIGHT - TEE BADGE
+# ============================================
+st.markdown("""
+<div class='tee-badge'>
+    <span class='dot'></span>TEE ACTIVE
+</div>
+""", unsafe_allow_html=True)
+
+
+# ============================================
+# SIDEBAR - ChatGPT Style Navigation
 # ============================================
 with st.sidebar:
+    # Small logo at top of sidebar
     st.markdown("""
-    <div style='text-align: center; padding: 10px 0;'>
-        <div style='font-size: 2.5rem; filter: drop-shadow(0 0 20px #4FF7FF);'>🛡️</div>
-        <h1 style='font-size: 1.4rem !important; margin: 10px 0;'>AI-SecChat</h1>
-        <div style='color: #5a7391; font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase;'>
-            v1.2 • Cyber Security
+    <div style='text-align: center; padding: 5px 0 15px 0;'>
+        <span style='font-size: 1.8rem; filter: drop-shadow(0 0 15px #4FF7FF);'>🛡️</span>
+        <span style='color: #4FF7FF; font-weight: 700; font-size: 1.1rem; margin-left: 8px;'>
+            AI-SecChat
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # ==== NAVIGATION ====
+    st.markdown("<div class='sidebar-label'>Tools</div>", unsafe_allow_html=True)
+    
+    if st.button("💬  AI Chat", key="nav_chat", use_container_width=True):
+        st.session_state.page = "chat"
+        st.rerun()
+    
+    if st.button("🎣  Phishing Detector", key="nav_phishing", use_container_width=True):
+        st.session_state.page = "phishing"
+        st.rerun()
+    
+    if st.button("🔑  Password Advisor", key="nav_password", use_container_width=True):
+        st.session_state.page = "password"
+        st.rerun()
+    
+    if st.button("🔗  URL Checker", key="nav_url", use_container_width=True):
+        st.session_state.page = "url"
+        st.rerun()
+    
+    if st.button("🔒  Crypto Toolkit", key="nav_crypto", use_container_width=True):
+        st.session_state.page = "crypto"
+        st.rerun()
+    
+    # ==== TEE AUDIT LOG (Recent Scans) ====
+    st.markdown("<div class='sidebar-label'>Recent Scans</div>", unsafe_allow_html=True)
+    
+    if st.session_state.history:
+        # Show last 8 entries
+        for item in reversed(st.session_state.history[-8:]):
+            st.markdown(f"""
+            <div class='history-item'>
+                <span class='time'>{item['time']}</span>
+                <span class='type'>{item['type']}</span>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style='color: #4a5d7a; font-size: 0.7rem; 
+                    text-align: center; padding: 10px; 
+                    font-style: italic;'>
+            No scans yet
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
     
-    st.markdown("---")
-    st.markdown("### ⚡ System Health")
+    # ==== VIEW FULL AUDIT LOG BUTTON ====
+    if st.session_state.history:
+        if st.button("📋  View Full Audit Log", key="nav_audit", use_container_width=True):
+            st.session_state.page = "audit"
+            st.rerun()
     
-    local_status = "🟢 Online" if tee.local_ai_available else "🟡 Cloud Only"
-    local_class = "ok" if tee.local_ai_available else "warn"
-    
-    st.markdown(f"""
-    <div class='system-block'>
-        <div><span class='ok'>●</span> TEE Layer: <span class='ok'>Active</span></div>
-        <div><span class='{local_class}'>●</span> Local AI: <span class='{local_class}'>{local_status}</span></div>
-        <div><span class='ok'>●</span> Gemini API: <span class='ok'>Ready</span></div>
-        <div><span class='ok'>●</span> Audit Log: <span class='ok'>{len(tee.audit_log)} entries</span></div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("### 🎯 Modules")
-    st.markdown("""
-    <div class='system-block'>
-        <div>💬 AI Chatbot</div>
-        <div>🎣 Phishing Detector</div>
-        <div>🔑 Password Advisor</div>
-        <div>🔗 URL Checker</div>
-        <div>🔐 TEE Audit Log</div>
-        <div>🔒 Crypto Toolkit</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("### ⚙️ Stack")
-    st.markdown("""
-    <div class='system-block'>
-        <div>› Python 3.10+</div>
-        <div>› Streamlit</div>
-        <div>› Google Gemini 3.8</div>
-        <div>› Ollama (Local AI)</div>
-        <div>› TEE Layer</div>
-        <div>› Cryptography</div>
-    </div>
-    """, unsafe_allow_html=True)
-    
+    # ==== TEAM (Bottom) ====
     st.markdown("---")
     st.markdown("""
-    <div style='text-align: center; color: #4a5d7a; font-size: 0.7rem; 
-                letter-spacing: 1px; padding: 10px;'>
-        <div style='color: #4FF7FF; font-weight: 600; margin-bottom: 4px;'>
+    <div style='text-align: center; color: #4a5d7a; font-size: 0.65rem; 
+                letter-spacing: 1px; padding: 8px;'>
+        <div style='color: #4FF7FF; font-weight: 600; margin-bottom: 3px;'>
             TEAM SILENT EXPLOIT
         </div>
-        <div>Made for Hackathon 2026</div>
+        <div>Hackathon 2026</div>
     </div>
     """, unsafe_allow_html=True)
 
 
 # ============================================
-# HERO SECTION
+# HERO SECTION (Center Logo)
 # ============================================
-st.title("🛡️ AI-SecChat")
-
 st.markdown("""
-<div class='hero'>
-    <b>AI-POWERED CYBER SECURITY ASSISTANT</b><br>
-    <span style='color: #5a7391; letter-spacing: 3px; font-size: 0.75rem;'>
-        DETECT • ANALYZE • PROTECT • TRUST
-    </span><br>
-    <small>🔐 TEE-ENABLED • ZERO-TRUST PROCESSING</small>
-</div>
-""", unsafe_allow_html=True)
-
-uptime = int(time.time() - st.session_state.start_time)
-uptime_str = f"{uptime//60:02d}:{uptime%60:02d}"
-
-st.markdown(f"""
-<div style='display: flex; justify-content: space-between; align-items: center;
-            padding: 8px 16px; background: rgba(10, 25, 50, 0.5); 
-            border: 1px solid rgba(46, 155, 255, 0.15);
-            border-radius: 8px; margin-bottom: 20px;
-            font-family: JetBrains Mono, monospace; font-size: 0.7rem;'>
-    <span style='color: #4FF7FF;'>◉ SYSTEM ONLINE</span>
-    <span style='color: #5a7391;'>TEE: ACTIVE</span>
-    <span style='color: #5a7391;'>UPTIME: {uptime_str}</span>
-    <span style='color: #5a7391;'>LOGS: {len(tee.audit_log)}</span>
+<div class='center-logo'>
+    <div class='shield'>🛡️</div>
+    <div class='title'>AI-SecChat</div>
+    <div class='subtitle'>Detect • Analyze • Protect • Trust</div>
 </div>
 """, unsafe_allow_html=True)
 
 
 # ============================================
-# TABS - 6 Tabs
+# PAGE CONTENT
 # ============================================
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "💬 AI Chat",
-    "🎣 Phishing Detector",
-    "🔑 Password Advisor",
-    "🔗 URL Checker",
-    "🔐 TEE Audit Log",
-    "🔒 Crypto Toolkit"
-])
+page = st.session_state.page
 
 
 # ============================================
-# TAB 1: AI CHAT (Auto Route)
+# PAGE: AI CHAT
 # ============================================
-with tab1:
+if page == "chat":
     st.header("💬 Security AI Chatbot")
-    st.write("Ask any question:")
+    st.write("Ask any cyber security question:")
     
-    question = st.text_input("Question:", key="chat_q")
+    question = st.text_input("Your Question:", key="chat_q")
     
     if st.button("Generate", key="chat_btn"):
         if question:
-            with st.spinner("AI Fetching Data..."):
+            with st.spinner("AI is fetching data..."):
                 try:
-                    # Chat: Auto route (safe data cloud, sensitive local)
                     answer, tee_info = ask_ai(
                         f"You are a cyber security expert. "
                         f"Answer in simple Roman English "
-                        f"(English words written in Roman script, no Hindi/Urdu). "
+                        f"(English words written in Roman script). "
                         f"Keep it short and clear: {question}",
                         force_local=False
                     )
@@ -257,24 +248,25 @@ with tab1:
                         "input": question[:50],
                         "time": time.strftime("%H:%M:%S")
                     })
+                    st.rerun()
                 except Exception as e:
                     st.error(f"Error: {e}")
         else:
-            st.warning("Please enter any question")
+            st.warning("Please enter a question")
 
 
 # ============================================
-# TAB 2: PHISHING DETECTOR (Auto Route)
+# PAGE: PHISHING DETECTOR
 # ============================================
-with tab2:
+elif page == "phishing":
     st.header("🎣 Phishing Email Detector")
     st.write("Paste your Email/Message:")
     
-    email = st.text_area("Email content:", height=200, key="phish_email")
+    email = st.text_area("Email Content:", height=200, key="phish_email")
     
     if st.button("Check Email", key="phish_btn"):
         if email:
-            with st.spinner("AI Fetching Data..."):
+            with st.spinner("AI is analyzing..."):
                 try:
                     prompt = f"""Analyze this email/message for phishing:
 
@@ -287,7 +279,6 @@ REASON: [2-3 lines]
 RED FLAGS: [bullet points]
 ADVICE: [what user should do]
 """
-                    # Auto route (PII detect hogi automatically)
                     result, tee_info = ask_ai(prompt, force_local=False)
                     
                     col1, col2 = st.columns(2)
@@ -309,27 +300,27 @@ ADVICE: [what user should do]
                         "input": email[:50],
                         "time": time.strftime("%H:%M:%S")
                     })
+                    st.rerun()
                 except Exception as e:
                     st.error(f"Error: {e}")
         else:
-            st.warning("Please enter Email/Message")
+            st.warning("Please paste an email/message")
 
 
 # ============================================
-# TAB 3: PASSWORD ADVISOR (PERMANENT LOCAL)
+# PAGE: PASSWORD ADVISOR (Permanent Local)
 # ============================================
-with tab3:
+elif page == "password":
     st.header("🔑 AI Password Advisor")
     st.write("Enter your Password:")
     
     pwd = st.text_input("Password:", type="password", key="pwd_input")
     
-    # Info box - permanent local
-    st.info("🔒 This feature always runs LOCALLY (TEE) - Password never leaves your device")
+    st.info("🔒 This feature always runs LOCALLY (TEE) — Password never leaves your device")
     
     if st.button("Check Password", key="pwd_btn"):
         if pwd:
-            with st.spinner("AI Fetching Data (Local)..."):
+            with st.spinner("AI is analyzing locally..."):
                 try:
                     prompt = f"""Analyze this password: {pwd}
 
@@ -340,11 +331,10 @@ Give (in Roman English):
 4. BETTER SUGGESTIONS: (3 strong examples)
 5. TIPS: (2 lines)
 """
-                    # Permanent force_local=True
                     result, tee_info = ask_ai(prompt, force_local=True)
                     
                     if tee_info["route"] == "local":
-                        st.success("🔒 Password processed LOCALLY - Not sent to cloud!")
+                        st.success("🔒 Password processed LOCALLY — Not sent to cloud!")
                     else:
                         st.info("☁️ Cloud processing (anonymized)")
                     
@@ -355,16 +345,17 @@ Give (in Roman English):
                         "input": "****",
                         "time": time.strftime("%H:%M:%S")
                     })
+                    st.rerun()
                 except Exception as e:
                     st.error(f"Error: {e}")
         else:
-            st.warning("Please enter your Password")
+            st.warning("Please enter your password")
 
 
 # ============================================
-# TAB 4: URL CHECKER (Auto Route)
+# PAGE: URL CHECKER
 # ============================================
-with tab4:
+elif page == "url":
     st.header("🔗 URL Safety Checker")
     st.write("Paste your URL:")
     
@@ -376,7 +367,7 @@ with tab4:
     
     if st.button("Check URL", key="url_btn"):
         if url:
-            with st.spinner("AI Fetching Data..."):
+            with st.spinner("AI is analyzing..."):
                 try:
                     prompt = f"""Is this URL safe or malicious? {url}
 
@@ -406,18 +397,19 @@ ADVICE: [what user should do]
                         "input": url[:50],
                         "time": time.strftime("%H:%M:%S")
                     })
+                    st.rerun()
                 except Exception as e:
                     st.error(f"Error: {e}")
         else:
-            st.warning("Please enter your URL")
+            st.warning("Please enter a URL")
 
 
 # ============================================
-# TAB 5: TEE AUDIT LOG
+# PAGE: FULL AUDIT LOG
 # ============================================
-with tab5:
+elif page == "audit":
     st.header("🔐 TEE Audit Log")
-    st.write("This shows where each request was processed")
+    st.write("Complete record of all requests and their routing")
     
     if tee.audit_log:
         total = len(tee.audit_log)
@@ -444,13 +436,13 @@ with tab5:
                 st.write(f"**PII Detected:** {', '.join(entry['pii_found'])}")
                 st.write(f"**Anonymized:** {entry['anonymized']}")
     else:
-        st.info("No requests made yet. Try a tab!")
+        st.info("No requests yet. Try a tool from the sidebar!")
 
 
 # ============================================
-# TAB 6: CRYPTO TOOLKIT
+# PAGE: CRYPTO TOOLKIT
 # ============================================
-with tab6:
+elif page == "crypto":
     st.header("🔒 Crypto Toolkit")
     st.write("Hash Generator + Hash Cracker + Encrypt + Decrypt")
     st.caption("⚠️ Educational Purpose Only")
@@ -462,23 +454,20 @@ with tab6:
         "🔑 Decrypt"
     ])
     
-    # ========== SUB-TAB 1: HASH GENERATOR ==========
+    # ========== HASH GENERATOR ==========
     with crypto_tab1:
         st.subheader("🔢 Hash Generator")
         st.write("Generate hashes from Text or File")
         
         hash_input_type = st.radio(
-            "Input type:",
-            ["Text", "File"],
-            horizontal=True,
-            key="hash_input_type"
+            "Input type:", ["Text", "File"],
+            horizontal=True, key="hash_input_type"
         )
         
         if hash_input_type == "Text":
             hash_text = st.text_area(
                 "Enter text to hash:",
-                height=100,
-                key="hash_text_input"
+                height=100, key="hash_text_input"
             )
             
             if st.button("Generate Hashes", key="gen_hash_btn"):
@@ -487,22 +476,17 @@ with tab6:
                     st.success("✅ Hashes generated!")
                     
                     for algo, hash_val in hashes.items():
-                        col1, col2 = st.columns([1, 3])
-                        col1.write(f"**{algo}**")
-                        col2.code(hash_val)
+                        c1, c2 = st.columns([1, 3])
+                        c1.write(f"**{algo}**")
+                        c2.code(hash_val)
                     
-                    st.markdown("**Combined output:**")
                     combined = "\n".join([f"{k}: {v}" for k, v in hashes.items()])
+                    st.markdown("**Combined output:**")
                     st.code(combined)
                 else:
                     st.warning("Please enter text first!")
-        
         else:
-            uploaded = st.file_uploader(
-                "Upload a file:",
-                key="hash_file_upload"
-            )
-            
+            uploaded = st.file_uploader("Upload a file:", key="hash_file_upload")
             if uploaded:
                 file_bytes = uploaded.read()
                 st.info(f"📁 File: {uploaded.name} ({len(file_bytes)} bytes)")
@@ -510,16 +494,15 @@ with tab6:
                 if st.button("Generate File Hashes", key="gen_file_hash_btn"):
                     hashes = hash_file(file_bytes)
                     st.success("✅ File hashes generated!")
-                    
                     for algo, hash_val in hashes.items():
-                        col1, col2 = st.columns([1, 3])
-                        col1.write(f"**{algo}**")
-                        col2.code(hash_val)
+                        c1, c2 = st.columns([1, 3])
+                        c1.write(f"**{algo}**")
+                        c2.code(hash_val)
     
-    # ========== SUB-TAB 2: HASH CRACKER ==========
+    # ========== HASH CRACKER ==========
     with crypto_tab2:
         st.subheader("🔓 Hash Cracker (Dictionary Attack)")
-        st.caption("Common passwords try karta hai - CrackStation style")
+        st.caption("Tries common passwords — CrackStation style")
         
         crack_hash_input = st.text_input(
             "Enter hash to crack:",
@@ -542,13 +525,11 @@ with tab6:
         
         if st.button("🔓 Crack Hash", key="crack_btn"):
             if crack_hash_input:
-                with st.spinner("Cracking... (trying common passwords)"):
+                with st.spinner("Cracking..."):
                     if crack_algo == "auto":
                         detected = identify_hash(crack_hash_input)
-                        algo_map = {
-                            "MD5": "md5", "SHA1": "sha1",
-                            "SHA256": "sha256", "SHA512": "sha512"
-                        }
+                        algo_map = {"MD5": "md5", "SHA1": "sha1",
+                                    "SHA256": "sha256", "SHA512": "sha512"}
                         crack_algo = algo_map.get(detected, "md5")
                     
                     result = crack_hash(crack_hash_input, crack_algo)
@@ -557,26 +538,24 @@ with tab6:
                         st.success(f"🎉 CRACKED! Original text: **{result}**")
                         st.balloons()
                     else:
-                        st.error("❌ Not cracked. Password strong hai ya wordlist mein nahi.")
-                        st.info("💡 Strong passwords easily crack nahi hote!")
+                        st.error("❌ Not cracked. Password is strong or not in wordlist.")
             else:
                 st.warning("Please enter a hash!")
         
         st.markdown("---")
         st.markdown("### 🧪 Try These Test Samples")
-        
-        col1, col2, col3 = st.columns(3)
-        with col1:
+        c1, c2, c3 = st.columns(3)
+        with c1:
             if st.button("Test: 123456", key="test1"):
                 st.code("e10adc3949ba59abbe56e057f20f883e")
-        with col2:
+        with c2:
             if st.button("Test: password", key="test2"):
                 st.code("5f4dcc3b5aa765d61d8327deb882cf99")
-        with col3:
+        with c3:
             if st.button("Test: admin", key="test3"):
                 st.code("21232f297a57a5a743894a0e4a801fc3")
     
-    # ========== SUB-TAB 3: ENCRYPT ==========
+    # ========== ENCRYPT ==========
     with crypto_tab3:
         st.subheader("🔒 Encrypt Text")
         
@@ -586,23 +565,12 @@ with tab6:
             key="enc_method"
         )
         
-        encrypt_text = st.text_area(
-            "Text to encrypt:",
-            height=100,
-            key="enc_text"
-        )
+        encrypt_text = st.text_area("Text to encrypt:", height=100, key="enc_text")
         
         if encrypt_method == "AES-256":
-            encrypt_password = st.text_input(
-                "Password:",
-                type="password",
-                key="enc_pwd"
-            )
+            encrypt_password = st.text_input("Password:", type="password", key="enc_pwd")
         elif encrypt_method == "Caesar Cipher":
-            caesar_shift = st.slider(
-                "Shift:", 1, 25, 3,
-                key="caesar_shift"
-            )
+            caesar_shift = st.slider("Shift:", 1, 25, 3, key="caesar_shift")
         
         if st.button("🔒 Encrypt", key="enc_btn"):
             if encrypt_text:
@@ -632,7 +600,7 @@ with tab6:
             else:
                 st.warning("Enter text first!")
     
-    # ========== SUB-TAB 4: DECRYPT ==========
+    # ========== DECRYPT ==========
     with crypto_tab4:
         st.subheader("🔑 Decrypt Text")
         
@@ -642,23 +610,12 @@ with tab6:
             key="dec_method"
         )
         
-        decrypt_text = st.text_area(
-            "Text to decrypt:",
-            height=100,
-            key="dec_text"
-        )
+        decrypt_text = st.text_area("Text to decrypt:", height=100, key="dec_text")
         
         if decrypt_method == "AES-256":
-            decrypt_password = st.text_input(
-                "Password:",
-                type="password",
-                key="dec_pwd"
-            )
+            decrypt_password = st.text_input("Password:", type="password", key="dec_pwd")
         elif decrypt_method == "Caesar Cipher":
-            caesar_shift_dec = st.slider(
-                "Shift:", 1, 25, 3,
-                key="caesar_shift_dec"
-            )
+            caesar_shift_dec = st.slider("Shift:", 1, 25, 3, key="caesar_shift_dec")
         
         if st.button("🔑 Decrypt", key="dec_btn"):
             if decrypt_text:
@@ -693,22 +650,11 @@ with tab6:
 
 
 # ============================================
-# SIDEBAR HISTORY
-# ============================================
-with st.sidebar:
-    if st.session_state.history:
-        st.markdown("---")
-        st.markdown("### 📜 Recent Scans")
-        for item in st.session_state.history[-5:]:
-            st.caption(f"**{item['type']}** | {item['time']}")
-
-
-# ============================================
 # FOOTER
 # ============================================
 st.markdown(f"""
 <div class='footer'>
-    🛡️ AI-SecChat v1.2 • TEE-Enabled • Powered by Google Gemini 3.8<br>
+    🛡️ AI-SecChat • TEE-Enabled • Powered by Google Gemini 3.8<br>
     <span style='color: #4FF7FF; letter-spacing: 2px;'>
         TEAM SILENT EXPLOIT
     </span>
