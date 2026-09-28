@@ -2,3 +2,5 @@ streamlit
 google-genai
 requests
 python-dotenv
+cryptography
+groq

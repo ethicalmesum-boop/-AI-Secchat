@@ -1,11 +1,13 @@
 # ============================================
 # AI-SecChat - Main Application
 # ChatGPT-style Sidebar Navigation
+# AI Priority: Ollama (Local) → Groq → Gemini
 # ============================================
 
 import streamlit as st
 import time
 import os
+import re
 from pathlib import Path
 from google import genai
 from tee_layer import TEELayer
@@ -18,7 +20,7 @@ from crypto_tools import (
 
 
 # ============================================
-# LOAD API KEY
+# LOAD API KEY (Gemini)
 # ============================================
 API_KEY = None
 try:
@@ -82,19 +84,37 @@ if "start_time" not in st.session_state:
 if "page" not in st.session_state:
     st.session_state.page = "chat"
 
+# Storage for last response per tool (survives rerun)
+if "last_response" not in st.session_state:
+    st.session_state.last_response = {}
+
 
 # ============================================
-# AI HELPER
+# AI HELPER (Groq → Gemini Fallback)
+# Priority: Local (Ollama) → Groq → Gemini
 # ============================================
 def ask_ai(prompt, force_local=False, max_retries=3):
+    """
+    TEE layer ke through AI se poochta hai.
+    Priority: Local (Ollama) → Groq (14,400/day) → Gemini (20/day)
+    """
     tee_result = tee.process(prompt, force_local=force_local)
     route = tee_result["route"]
     safe_prompt = tee_result["safe_prompt"]
     
+    # ---- LOCAL AI (Ollama) ----
     if route == "local":
         response = tee.query_local_ai(safe_prompt)
         return response, tee_result
     
+    # ---- CLOUD AI ----
+    # Priority 1: Groq (fast + high limit)
+    if tee.groq_client:
+        groq_result = tee.query_groq(safe_prompt)
+        if groq_result and not groq_result.startswith("Groq Error"):
+            return groq_result, tee_result
+    
+    # Priority 2: Gemini (fallback)
     for attempt in range(max_retries):
         try:
             resp = client.models.generate_content(
@@ -103,11 +123,24 @@ def ask_ai(prompt, force_local=False, max_retries=3):
             )
             return resp.text, tee_result
         except Exception as e:
-            if ("503" in str(e) or "UNAVAILABLE" in str(e)):
+            error_str = str(e)
+            
+            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                if attempt < max_retries - 1:
+                    match = re.search(r'retry in ([\d.]+)s', error_str)
+                    wait = float(match.group(1)) if match else 5
+                    wait = min(wait + 1, 30)
+                    time.sleep(wait)
+                    continue
+            
+            elif "503" in error_str or "UNAVAILABLE" in error_str:
                 if attempt < max_retries - 1:
                     time.sleep(3)
                     continue
+            
             raise e
+    
+    raise Exception("All AI providers failed. Please try again later.")
 
 
 # ============================================
@@ -124,7 +157,6 @@ st.markdown("""
 # SIDEBAR - ChatGPT Style Navigation
 # ============================================
 with st.sidebar:
-    # Small logo at top of sidebar
     st.markdown("""
     <div style='text-align: center; padding: 5px 0 15px 0;'>
         <span style='font-size: 1.8rem; filter: drop-shadow(0 0 15px #4FF7FF);'>🛡️</span>
@@ -157,11 +189,10 @@ with st.sidebar:
         st.session_state.page = "crypto"
         st.rerun()
     
-    # ==== TEE AUDIT LOG (Recent Scans) ====
+    # ==== RECENT SCANS ====
     st.markdown("<div class='sidebar-label'>Recent Scans</div>", unsafe_allow_html=True)
     
     if st.session_state.history:
-        # Show last 8 entries
         for item in reversed(st.session_state.history[-8:]):
             st.markdown(f"""
             <div class='history-item'>
@@ -178,13 +209,11 @@ with st.sidebar:
         </div>
         """, unsafe_allow_html=True)
     
-    # ==== VIEW FULL AUDIT LOG BUTTON ====
     if st.session_state.history:
         if st.button("📋  View Full Audit Log", key="nav_audit", use_container_width=True):
             st.session_state.page = "audit"
             st.rerun()
     
-    # ==== TEAM (Bottom) ====
     st.markdown("---")
     st.markdown("""
     <div style='text-align: center; color: #4a5d7a; font-size: 0.65rem; 
@@ -236,12 +265,12 @@ if page == "chat":
                         force_local=False
                     )
                     
-                    if tee_info["route"] == "local":
-                        st.info("🔒 Processed Locally (TEE)")
-                    else:
-                        st.info("☁️ Processed via Cloud AI (Anonymized)")
-                    
-                    st.success(answer)
+                    # Save response to session state
+                    st.session_state.last_response["chat"] = {
+                        "answer": answer,
+                        "route": tee_info["route"],
+                        "question": question
+                    }
                     
                     st.session_state.history.append({
                         "type": "Chat",
@@ -253,6 +282,18 @@ if page == "chat":
                     st.error(f"Error: {e}")
         else:
             st.warning("Please enter a question")
+    
+    # Display last response (survives rerun)
+    if "chat" in st.session_state.last_response:
+        data = st.session_state.last_response["chat"]
+        st.markdown("---")
+        st.markdown(f"**Q:** {data['question']}")
+        st.markdown("### 💡 Response:")
+        if data["route"] == "local":
+            st.info("🔒 Processed Locally (TEE)")
+        else:
+            st.info("☁️ Processed via Cloud AI (Anonymized)")
+        st.success(data["answer"])
 
 
 # ============================================
@@ -281,19 +322,12 @@ ADVICE: [what user should do]
 """
                     result, tee_info = ask_ai(prompt, force_local=False)
                     
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if tee_info["route"] == "local":
-                            st.info("🔒 Local Processing")
-                        else:
-                            st.info("☁️ Cloud Processing")
-                    with col2:
-                        if tee_info["pii_found"]:
-                            st.warning(f"⚠️ PII: {', '.join(tee_info['pii_found'])}")
-                        else:
-                            st.success("✅ No PII")
-                    
-                    st.markdown(result)
+                    # Save response
+                    st.session_state.last_response["phishing"] = {
+                        "answer": result,
+                        "route": tee_info["route"],
+                        "pii": tee_info["pii_found"]
+                    }
                     
                     st.session_state.history.append({
                         "type": "Phishing",
@@ -305,6 +339,26 @@ ADVICE: [what user should do]
                     st.error(f"Error: {e}")
         else:
             st.warning("Please paste an email/message")
+    
+    # Display last response
+    if "phishing" in st.session_state.last_response:
+        data = st.session_state.last_response["phishing"]
+        st.markdown("---")
+        st.markdown("### 💡 Analysis Result:")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if data["route"] == "local":
+                st.info("🔒 Local Processing")
+            else:
+                st.info("☁️ Cloud Processing")
+        with col2:
+            if data["pii"]:
+                st.warning(f"⚠️ PII: {', '.join(data['pii'])}")
+            else:
+                st.success("✅ No PII")
+        
+        st.markdown(data["answer"])
 
 
 # ============================================
@@ -333,12 +387,11 @@ Give (in Roman English):
 """
                     result, tee_info = ask_ai(prompt, force_local=True)
                     
-                    if tee_info["route"] == "local":
-                        st.success("🔒 Password processed LOCALLY — Not sent to cloud!")
-                    else:
-                        st.info("☁️ Cloud processing (anonymized)")
-                    
-                    st.markdown(result)
+                    # Save response
+                    st.session_state.last_response["password"] = {
+                        "answer": result,
+                        "route": tee_info["route"]
+                    }
                     
                     st.session_state.history.append({
                         "type": "Password",
@@ -350,6 +403,17 @@ Give (in Roman English):
                     st.error(f"Error: {e}")
         else:
             st.warning("Please enter your password")
+    
+    # Display last response
+    if "password" in st.session_state.last_response:
+        data = st.session_state.last_response["password"]
+        st.markdown("---")
+        st.markdown("### 💡 Result:")
+        if data["route"] == "local":
+            st.success("🔒 Password processed LOCALLY — Not sent to cloud!")
+        else:
+            st.info("☁️ Cloud processing (anonymized)")
+        st.markdown(data["answer"])
 
 
 # ============================================
@@ -385,12 +449,11 @@ ADVICE: [what user should do]
 """
                     result, tee_info = ask_ai(prompt, force_local=False)
                     
-                    if tee_info["route"] == "local":
-                        st.info("🔒 Local Processing")
-                    else:
-                        st.info("☁️ Cloud Processing")
-                    
-                    st.markdown(result)
+                    # Save response
+                    st.session_state.last_response["url"] = {
+                        "answer": result,
+                        "route": tee_info["route"]
+                    }
                     
                     st.session_state.history.append({
                         "type": "URL",
@@ -402,6 +465,17 @@ ADVICE: [what user should do]
                     st.error(f"Error: {e}")
         else:
             st.warning("Please enter a URL")
+    
+    # Display last response
+    if "url" in st.session_state.last_response:
+        data = st.session_state.last_response["url"]
+        st.markdown("---")
+        st.markdown("### 💡 Result:")
+        if data["route"] == "local":
+            st.info("🔒 Local Processing")
+        else:
+            st.info("☁️ Cloud Processing")
+        st.markdown(data["answer"])
 
 
 # ============================================
@@ -473,18 +547,23 @@ elif page == "crypto":
             if st.button("Generate Hashes", key="gen_hash_btn"):
                 if hash_text:
                     hashes = generate_hashes(hash_text)
-                    st.success("✅ Hashes generated!")
-                    
-                    for algo, hash_val in hashes.items():
-                        c1, c2 = st.columns([1, 3])
-                        c1.write(f"**{algo}**")
-                        c2.code(hash_val)
-                    
-                    combined = "\n".join([f"{k}: {v}" for k, v in hashes.items()])
-                    st.markdown("**Combined output:**")
-                    st.code(combined)
+                    st.session_state.last_response["hash_gen"] = hashes
+                    st.rerun()
                 else:
                     st.warning("Please enter text first!")
+            
+            # Display stored hashes
+            if "hash_gen" in st.session_state.last_response:
+                hashes = st.session_state.last_response["hash_gen"]
+                st.success("✅ Hashes generated!")
+                for algo, hash_val in hashes.items():
+                    c1, c2 = st.columns([1, 3])
+                    c1.write(f"**{algo}**")
+                    c2.code(hash_val)
+                
+                combined = "\n".join([f"{k}: {v}" for k, v in hashes.items()])
+                st.markdown("**Combined output:**")
+                st.code(combined)
         else:
             uploaded = st.file_uploader("Upload a file:", key="hash_file_upload")
             if uploaded:
@@ -493,6 +572,11 @@ elif page == "crypto":
                 
                 if st.button("Generate File Hashes", key="gen_file_hash_btn"):
                     hashes = hash_file(file_bytes)
+                    st.session_state.last_response["file_hash"] = hashes
+                    st.rerun()
+                
+                if "file_hash" in st.session_state.last_response:
+                    hashes = st.session_state.last_response["file_hash"]
                     st.success("✅ File hashes generated!")
                     for algo, hash_val in hashes.items():
                         c1, c2 = st.columns([1, 3])
@@ -535,12 +619,26 @@ elif page == "crypto":
                     result = crack_hash(crack_hash_input, crack_algo)
                     
                     if result:
-                        st.success(f"🎉 CRACKED! Original text: **{result}**")
+                        st.session_state.last_response["crack"] = {
+                            "success": True,
+                            "value": result
+                        }
                         st.balloons()
                     else:
-                        st.error("❌ Not cracked. Password is strong or not in wordlist.")
+                        st.session_state.last_response["crack"] = {
+                            "success": False,
+                            "value": None
+                        }
+                    st.rerun()
             else:
                 st.warning("Please enter a hash!")
+        
+        if "crack" in st.session_state.last_response:
+            data = st.session_state.last_response["crack"]
+            if data["success"]:
+                st.success(f"🎉 CRACKED! Original text: **{data['value']}**")
+            else:
+                st.error("❌ Not cracked. Password is strong or not in wordlist.")
         
         st.markdown("---")
         st.markdown("### 🧪 Try These Test Samples")
@@ -593,12 +691,16 @@ elif page == "crypto":
                         result = reverse_text(encrypt_text)
                     
                     if result:
-                        st.success("✅ Encrypted!")
-                        st.code(result)
+                        st.session_state.last_response["encrypt"] = result
+                        st.rerun()
                 except Exception as e:
                     st.error(f"Error: {e}")
             else:
                 st.warning("Enter text first!")
+        
+        if "encrypt" in st.session_state.last_response:
+            st.success("✅ Encrypted!")
+            st.code(st.session_state.last_response["encrypt"])
     
     # ========== DECRYPT ==========
     with crypto_tab4:
@@ -638,15 +740,20 @@ elif page == "crypto":
                         result = reverse_text(decrypt_text)
                     
                     if result:
-                        if result.startswith("❌"):
-                            st.error(result)
-                        else:
-                            st.success("✅ Decrypted!")
-                            st.code(result)
+                        st.session_state.last_response["decrypt"] = result
+                        st.rerun()
                 except Exception as e:
                     st.error(f"Error: {e}")
             else:
                 st.warning("Enter text first!")
+        
+        if "decrypt" in st.session_state.last_response:
+            result = st.session_state.last_response["decrypt"]
+            if result.startswith("❌"):
+                st.error(result)
+            else:
+                st.success("✅ Decrypted!")
+                st.code(result)
 
 
 # ============================================
@@ -654,7 +761,7 @@ elif page == "crypto":
 # ============================================
 st.markdown(f"""
 <div class='footer'>
-    🛡️ AI-SecChat • TEE-Enabled • Powered by Google Gemini 3.8<br>
+    🛡️ AI-SecChat • TEE-Enabled • Powered by Groq + Gemini<br>
     <span style='color: #4FF7FF; letter-spacing: 2px;'>
         TEAM SILENT EXPLOIT
     </span>
