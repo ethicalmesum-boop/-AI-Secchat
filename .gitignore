@@ -1,0 +1,51 @@
+# Environment files - ALL variations
+.env
+.env.*
+.env\
+.env\*
+*.env
+
+# Virtual environment
+venv/
+env/
+.venv/
+ENV/
+
+# API keys
+secrets.toml
+.streamlit/secrets.toml
+config.py
+api_keys.txt
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# OS files
+.DS_Store
+Thumbs.db# Virtual environment
+venv/
+env/
+.venv/
+
+# API keys - KABHI UPLOAD NAHI KARNA
+.env
+secrets.toml
+config.py
+api_keys.txt
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS files
+.DS_Store
+Thumbs.db
+.env
+venv/
+__pycache__/
