@@ -202,6 +202,7 @@ with st.sidebar:
         st.session_state.page = "crypto"
         st.rerun()
 
+    # ==== RECENT SCANS ====
     st.markdown("<div class='sidebar-label'>Recent Scans</div>", unsafe_allow_html=True)
 
     if st.session_state.history:
@@ -221,6 +222,8 @@ with st.sidebar:
         </div>
         """, unsafe_allow_html=True)
 
+    # ==== VIEW FULL AUDIT LOG (only if history exists) - FIXED ====
+    if st.session_state.history:
         if st.button("📋  View Full Audit Log", key="nav_audit", use_container_width=True):
             st.session_state.page = "audit"
             st.rerun()
@@ -502,7 +505,6 @@ ADVICE: [what user should do]
 
 # ============================================
 # PAGE: VOICE DEEPFAKE DETECTOR
-# Supports WAV, MP3, M4A, OGG, FLAC (auto-converts)
 # ============================================
 elif page == "voice":
     st.header("🎙️ Voice Deepfake Detector")
@@ -517,14 +519,12 @@ elif page == "voice":
     )
 
     if uploaded_audio:
-        # ---- Save uploaded file with ORIGINAL extension ----
         ext = os.path.splitext(uploaded_audio.name)[1].lower() or ".wav"
         tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
         tmp_file.write(uploaded_audio.read())
         tmp_file.close()
         audio_path = tmp_file.name
 
-        # Show audio player
         st.audio(uploaded_audio)
         st.info(f"📁 File: {uploaded_audio.name} ({round(uploaded_audio.size / 1024, 2)} KB)")
 
@@ -543,7 +543,6 @@ elif page == "voice":
                 else:
                     st.error(f"Error: {result['error']}")
 
-        # Cleanup temp file
         try:
             if os.path.exists(audio_path):
                 os.remove(audio_path)
@@ -565,6 +564,9 @@ elif page == "voice":
             st.metric("Confidence", f"{data['confidence']}%")
         with col3:
             st.metric("Duration", f"{data['duration']}s")
+
+        if "strong_signals" in data:
+            st.metric("Strong AI Signals", data["strong_signals"])
 
         st.markdown("### 🔍 Analysis Details:")
         for reason in data.get("reasons", []):
@@ -643,7 +645,6 @@ elif page == "crypto":
         "🔑 Decrypt"
     ])
 
-    # ========== TAB 1: HASH GENERATOR ==========
     with crypto_tab1:
         st.subheader("🔢 Hash Generator")
         st.write("Generate hashes from Text or File")
@@ -698,7 +699,6 @@ elif page == "crypto":
                         c1.write(f"**{algo}**")
                         c2.code(hash_val)
 
-    # ========== TAB 2: HASH CRACKER ==========
     with crypto_tab2:
         st.subheader("🔓 Hash Cracker (Dictionary Attack)")
         st.caption("Tries common passwords — CrackStation style")
@@ -770,7 +770,6 @@ elif page == "crypto":
             if st.button("Test: admin", key="test3"):
                 st.code("21232f297a57a5a743894a0e4a801fc3")
 
-    # ========== TAB 3: ENCRYPT ==========
     with crypto_tab3:
         st.subheader("🔒 Encrypt Text")
 
@@ -819,7 +818,6 @@ elif page == "crypto":
             st.success("✅ Encrypted!")
             st.code(st.session_state.last_response["encrypt"])
 
-    # ========== TAB 4: DECRYPT ==========
     with crypto_tab4:
         st.subheader("🔑 Decrypt Text")
 
