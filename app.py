@@ -33,7 +33,7 @@ except:
     API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not API_KEY:
-    st.error("⚠️ GEMINI_API_KEY not found!")
+    st.error("GEMINI_API_KEY not found!")
     st.stop()
 
 
@@ -178,27 +178,27 @@ with st.sidebar:
 
     st.markdown("<div class='sidebar-label'>Tools</div>", unsafe_allow_html=True)
 
-    if st.button("💬  AI Chat", key="nav_chat", use_container_width=True):
+    if st.button("AI Chat", key="nav_chat", use_container_width=True):
         st.session_state.page = "chat"
         st.rerun()
 
-    if st.button("🎣  Phishing Detector", key="nav_phishing", use_container_width=True):
+    if st.button("Phishing Detector", key="nav_phishing", use_container_width=True):
         st.session_state.page = "phishing"
         st.rerun()
 
-    if st.button("🔑  Password Advisor", key="nav_password", use_container_width=True):
+    if st.button("Password Advisor", key="nav_password", use_container_width=True):
         st.session_state.page = "password"
         st.rerun()
 
-    if st.button("🔗  URL Checker", key="nav_url", use_container_width=True):
+    if st.button("URL Checker", key="nav_url", use_container_width=True):
         st.session_state.page = "url"
         st.rerun()
 
-    if st.button("🎙️  Voice Deepfake Detector", key="nav_voice", use_container_width=True):
+    if st.button("Voice Deepfake Detector", key="nav_voice", use_container_width=True):
         st.session_state.page = "voice"
         st.rerun()
 
-    if st.button("🔒  Cryptography Toolkit", key="nav_crypto", use_container_width=True):
+    if st.button("Cryptography Toolkit", key="nav_crypto", use_container_width=True):
         st.session_state.page = "crypto"
         st.rerun()
 
@@ -222,9 +222,9 @@ with st.sidebar:
         </div>
         """, unsafe_allow_html=True)
 
-    # ==== VIEW FULL AUDIT LOG (only if history exists) - FIXED ====
+    # ==== VIEW FULL AUDIT LOG ====
     if st.session_state.history:
-        if st.button("📋  View Full Audit Log", key="nav_audit", use_container_width=True):
+        if st.button("View Full Audit Log", key="nav_audit", use_container_width=True):
             st.session_state.page = "audit"
             st.rerun()
 
@@ -266,7 +266,7 @@ st.markdown("""
         </svg>
     </div>
     <div class='title'>AI-SecChat</div>
-    <div class='subtitle'>Detect • Analyze • Protect • Trust</div>
+    <div class='subtitle'>Detect - Analyze - Protect - Trust</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -281,7 +281,7 @@ page = st.session_state.page
 # PAGE: AI CHAT
 # ============================================
 if page == "chat":
-    st.header("💬 Security AI Chatbot")
+    st.header("Security AI Chatbot")
     st.write("Ask any cyber security question:")
 
     question = st.text_input("Your Question:", key="chat_q")
@@ -319,11 +319,11 @@ if page == "chat":
         data = st.session_state.last_response["chat"]
         st.markdown("---")
         st.markdown(f"**Q:** {data['question']}")
-        st.markdown("### 💡 Response:")
+        st.markdown("### Response:")
         if data["route"] == "local":
-            st.info("🔒 Processed Locally (TEE)")
+            st.info("Processed Locally (TEE)")
         else:
-            st.info("☁️ Processed via Cloud AI (Anonymized)")
+            st.info("Processed via Cloud AI (Anonymized)")
         st.success(data["answer"])
 
 
@@ -331,7 +331,7 @@ if page == "chat":
 # PAGE: PHISHING DETECTOR
 # ============================================
 elif page == "phishing":
-    st.header("🎣 Phishing Email Detector")
+    st.header("Phishing Email Detector")
     st.write("Paste your Email/Message:")
 
     email = st.text_area("Email Content:", height=200, key="phish_email")
@@ -373,19 +373,19 @@ ADVICE: [what user should do]
     if "phishing" in st.session_state.last_response:
         data = st.session_state.last_response["phishing"]
         st.markdown("---")
-        st.markdown("### 💡 Analysis Result:")
+        st.markdown("### Analysis Result:")
 
         col1, col2 = st.columns(2)
         with col1:
             if data["route"] == "local":
-                st.info("🔒 Local Processing")
+                st.info("Local Processing")
             else:
-                st.info("☁️ Cloud Processing")
+                st.info("Cloud Processing")
         with col2:
             if data["pii"]:
-                st.warning(f"⚠️ PII: {', '.join(data['pii'])}")
+                st.warning(f"PII: {', '.join(data['pii'])}")
             else:
-                st.success("✅ No PII")
+                st.success("No PII")
 
         st.markdown(data["answer"])
 
@@ -394,12 +394,12 @@ ADVICE: [what user should do]
 # PAGE: PASSWORD ADVISOR
 # ============================================
 elif page == "password":
-    st.header("🔑 AI Password Advisor")
+    st.header("AI Password Advisor")
     st.write("Enter your Password:")
 
     pwd = st.text_input("Password:", type="password", key="pwd_input")
 
-    st.info("🔒 This feature always runs LOCALLY (TEE) — Password never leaves your device")
+    st.info("This feature always runs LOCALLY (TEE) - Password never leaves your device")
 
     if st.button("Check Password", key="pwd_btn"):
         if pwd:
@@ -435,11 +435,11 @@ Give (in Roman English):
     if "password" in st.session_state.last_response:
         data = st.session_state.last_response["password"]
         st.markdown("---")
-        st.markdown("### 💡 Result:")
+        st.markdown("### Result:")
         if data["route"] == "local":
-            st.success("🔒 Password processed LOCALLY — Not sent to cloud!")
+            st.success("Password processed LOCALLY - Not sent to cloud!")
         else:
-            st.info("☁️ Cloud processing (anonymized)")
+            st.info("Cloud processing (anonymized)")
         st.markdown(data["answer"])
 
 
@@ -447,7 +447,7 @@ Give (in Roman English):
 # PAGE: URL CHECKER
 # ============================================
 elif page == "url":
-    st.header("🔗 URL Safety Checker")
+    st.header("URL Safety Checker")
     st.write("Paste your URL:")
 
     url = st.text_input(
@@ -495,11 +495,11 @@ ADVICE: [what user should do]
     if "url" in st.session_state.last_response:
         data = st.session_state.last_response["url"]
         st.markdown("---")
-        st.markdown("### 💡 Result:")
+        st.markdown("### Result:")
         if data["route"] == "local":
-            st.info("🔒 Local Processing")
+            st.info("Local Processing")
         else:
-            st.info("☁️ Cloud Processing")
+            st.info("Cloud Processing")
         st.markdown(data["answer"])
 
 
@@ -507,10 +507,10 @@ ADVICE: [what user should do]
 # PAGE: VOICE DEEPFAKE DETECTOR
 # ============================================
 elif page == "voice":
-    st.header("🎙️ Voice Deepfake Detector")
-    st.write("Upload audio file — AI check karega human hai ya AI-generated")
-    st.caption("⚠️ Detects AI voice clones used in vishing / voice fraud attacks")
-    st.caption("✅ Supports: WAV, MP3, M4A, OGG, FLAC")
+    st.header("Voice Deepfake Detector")
+    st.write("Upload audio file - AI check karega human hai ya AI-generated")
+    st.caption("Detects AI voice clones used in vishing / voice fraud attacks")
+    st.caption("Supports: WAV, MP3, M4A, OGG, FLAC")
 
     uploaded_audio = st.file_uploader(
         "Upload audio file:",
@@ -526,9 +526,9 @@ elif page == "voice":
         audio_path = tmp_file.name
 
         st.audio(uploaded_audio)
-        st.info(f"📁 File: {uploaded_audio.name} ({round(uploaded_audio.size / 1024, 2)} KB)")
+        st.info(f"File: {uploaded_audio.name} ({round(uploaded_audio.size / 1024, 2)} KB)")
 
-        if st.button("🔍 Analyze Voice", key="voice_btn"):
+        if st.button("Analyze Voice", key="voice_btn"):
             with st.spinner("Analyzing audio features... (auto-converting if needed)"):
                 result = voice_det.analyze(audio_path)
 
@@ -552,7 +552,7 @@ elif page == "voice":
     if "voice" in st.session_state.last_response:
         data = st.session_state.last_response["voice"]
         st.markdown("---")
-        st.markdown("### 🎯 Analysis Result:")
+        st.markdown("### Analysis Result:")
 
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -565,33 +565,30 @@ elif page == "voice":
         with col3:
             st.metric("Duration", f"{data['duration']}s")
 
-        if "strong_signals" in data:
-            st.metric("Strong AI Signals", data["strong_signals"])
-
-        st.markdown("### 🔍 Analysis Details:")
+        st.markdown("### Analysis Details:")
         for reason in data.get("reasons", []):
-            st.write(f"• {reason}")
+            st.write(f"- {reason}")
 
         if data["is_fake"]:
             st.warning("""
-            ⚠️ **Security Alert:** This audio appears AI-generated.
+**Security Alert:** This audio appears AI-generated.
 
-            **Possible threats:**
-            - Vishing (voice phishing) attack
-            - Voice impersonation fraud
-            - Fake emergency call scam
+**Possible threats:**
+- Vishing (voice phishing) attack
+- Voice impersonation fraud
+- Fake emergency call scam
 
-            **Recommendation:** Verify identity via another channel.
+**Recommendation:** Verify identity via another channel.
             """)
         else:
-            st.info("✅ Natural human voice patterns detected.")
+            st.info("Natural human voice patterns detected.")
 
     st.markdown("---")
-    st.markdown("### 🧪 How to Test")
+    st.markdown("### How to Test")
     st.markdown("""
-    - 🎤 **Record your voice** → Upload → Should say HUMAN
-    - 🤖 **AI voice generate karo** (ElevenLabs free) → Upload MP3 → Should say AI
-    - ✅ **Sab formats chalte hain** — WAV, MP3, M4A, OGG, FLAC
+- Record your voice -> Upload -> Should say HUMAN
+- AI voice generate karo (ElevenLabs free) -> Upload MP3 -> Should say AI
+- Sab formats chalte hain - WAV, MP3, M4A, OGG, FLAC
     """)
 
 
@@ -599,7 +596,7 @@ elif page == "voice":
 # PAGE: FULL AUDIT LOG
 # ============================================
 elif page == "audit":
-    st.header("🔐 TEE Audit Log")
+    st.header("TEE Audit Log")
     st.write("Complete record of all requests and their routing")
 
     if tee.audit_log:
@@ -610,12 +607,12 @@ elif page == "audit":
 
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Total Requests", total)
-        col2.metric("🔒 Local", local_count)
-        col3.metric("☁️ Cloud", cloud_count)
-        col4.metric("⚠️ PII Detected", pii_count)
+        col2.metric("Local", local_count)
+        col3.metric("Cloud", cloud_count)
+        col4.metric("PII Detected", pii_count)
 
         st.markdown("---")
-        st.markdown("### 📋 Full Audit Log")
+        st.markdown("### Full Audit Log")
         for entry in reversed(tee.audit_log):
             with st.expander(
                 f"[{entry['timestamp']}] {entry['route'].upper()} | "
@@ -634,19 +631,19 @@ elif page == "audit":
 # PAGE: CRYPTO TOOLKIT
 # ============================================
 elif page == "crypto":
-    st.header("🔒 Crypto Toolkit")
+    st.header("Crypto Toolkit")
     st.write("Hash Generator + Hash Cracker + Encrypt + Decrypt")
-    st.caption("⚠️ Educational Purpose Only")
+    st.caption("Educational Purpose Only")
 
     crypto_tab1, crypto_tab2, crypto_tab3, crypto_tab4 = st.tabs([
-        "🔢 Hash Generator",
-        "🔓 Hash Cracker",
-        "🔒 Encrypt",
-        "🔑 Decrypt"
+        "Hash Generator",
+        "Hash Cracker",
+        "Encrypt",
+        "Decrypt"
     ])
 
     with crypto_tab1:
-        st.subheader("🔢 Hash Generator")
+        st.subheader("Hash Generator")
         st.write("Generate hashes from Text or File")
 
         hash_input_type = st.radio(
@@ -670,7 +667,7 @@ elif page == "crypto":
 
             if "hash_gen" in st.session_state.last_response:
                 hashes = st.session_state.last_response["hash_gen"]
-                st.success("✅ Hashes generated!")
+                st.success("Hashes generated!")
                 for algo, hash_val in hashes.items():
                     c1, c2 = st.columns([1, 3])
                     c1.write(f"**{algo}**")
@@ -684,7 +681,7 @@ elif page == "crypto":
             uploaded = st.file_uploader("Upload a file:", key="hash_file_upload")
             if uploaded:
                 file_bytes = uploaded.read()
-                st.info(f"📁 File: {uploaded.name} ({len(file_bytes)} bytes)")
+                st.info(f"File: {uploaded.name} ({len(file_bytes)} bytes)")
 
                 if st.button("Generate File Hashes", key="gen_file_hash_btn"):
                     hashes = hash_file(file_bytes)
@@ -693,15 +690,15 @@ elif page == "crypto":
 
                 if "file_hash" in st.session_state.last_response:
                     hashes = st.session_state.last_response["file_hash"]
-                    st.success("✅ File hashes generated!")
+                    st.success("File hashes generated!")
                     for algo, hash_val in hashes.items():
                         c1, c2 = st.columns([1, 3])
                         c1.write(f"**{algo}**")
                         c2.code(hash_val)
 
     with crypto_tab2:
-        st.subheader("🔓 Hash Cracker (Dictionary Attack)")
-        st.caption("Tries common passwords — CrackStation style")
+        st.subheader("Hash Cracker (Dictionary Attack)")
+        st.caption("Tries common passwords - CrackStation style")
 
         crack_hash_input = st.text_input(
             "Enter hash to crack:",
@@ -712,9 +709,9 @@ elif page == "crypto":
         if crack_hash_input:
             detected = identify_hash(crack_hash_input)
             if detected != "Not a valid hash":
-                st.info(f"🔍 Detected: **{detected}**")
+                st.info(f"Detected: **{detected}**")
             else:
-                st.warning("⚠️ Invalid hash format")
+                st.warning("Invalid hash format")
 
         crack_algo = st.selectbox(
             "Algorithm:",
@@ -722,7 +719,7 @@ elif page == "crypto":
             key="crack_algo"
         )
 
-        if st.button("🔓 Crack Hash", key="crack_btn"):
+        if st.button("Crack Hash", key="crack_btn"):
             if crack_hash_input:
                 with st.spinner("Cracking..."):
                     if crack_algo == "auto":
@@ -753,12 +750,12 @@ elif page == "crypto":
         if "crack" in st.session_state.last_response:
             data = st.session_state.last_response["crack"]
             if data["success"]:
-                st.success(f"🎉 CRACKED! Original text: **{data['value']}**")
+                st.success(f"CRACKED! Original text: **{data['value']}**")
             else:
-                st.error("❌ Not cracked. Password is strong or not in wordlist.")
+                st.error("Not cracked. Password is strong or not in wordlist.")
 
         st.markdown("---")
-        st.markdown("### 🧪 Try These Test Samples")
+        st.markdown("### Try These Test Samples")
         c1, c2, c3 = st.columns(3)
         with c1:
             if st.button("Test: 123456", key="test1"):
@@ -771,7 +768,7 @@ elif page == "crypto":
                 st.code("21232f297a57a5a743894a0e4a801fc3")
 
     with crypto_tab3:
-        st.subheader("🔒 Encrypt Text")
+        st.subheader("Encrypt Text")
 
         encrypt_method = st.selectbox(
             "Encryption Method:",
@@ -786,7 +783,7 @@ elif page == "crypto":
         elif encrypt_method == "Caesar Cipher":
             caesar_shift = st.slider("Shift:", 1, 25, 3, key="caesar_shift")
 
-        if st.button("🔒 Encrypt", key="enc_btn"):
+        if st.button("Encrypt", key="enc_btn"):
             if encrypt_text:
                 try:
                     if encrypt_method == "AES-256":
@@ -815,11 +812,11 @@ elif page == "crypto":
                 st.warning("Enter text first!")
 
         if "encrypt" in st.session_state.last_response:
-            st.success("✅ Encrypted!")
+            st.success("Encrypted!")
             st.code(st.session_state.last_response["encrypt"])
 
     with crypto_tab4:
-        st.subheader("🔑 Decrypt Text")
+        st.subheader("Decrypt Text")
 
         decrypt_method = st.selectbox(
             "Decryption Method:",
@@ -834,7 +831,7 @@ elif page == "crypto":
         elif decrypt_method == "Caesar Cipher":
             caesar_shift_dec = st.slider("Shift:", 1, 25, 3, key="caesar_shift_dec")
 
-        if st.button("🔑 Decrypt", key="dec_btn"):
+        if st.button("Decrypt", key="dec_btn"):
             if decrypt_text:
                 try:
                     if decrypt_method == "AES-256":
@@ -864,10 +861,10 @@ elif page == "crypto":
 
         if "decrypt" in st.session_state.last_response:
             result = st.session_state.last_response["decrypt"]
-            if result.startswith("❌"):
+            if result.startswith("Invalid") or result.startswith("Wrong"):
                 st.error(result)
             else:
-                st.success("✅ Decrypted!")
+                st.success("Decrypted!")
                 st.code(result)
 
 
@@ -876,7 +873,7 @@ elif page == "crypto":
 # ============================================
 st.markdown(f"""
 <div class='footer'>
-    🛡️ AI-SecChat • TEE-Enabled • Powered by Groq + Gemini<br>
+    AI-SecChat - TEE-Enabled - Powered by Groq + Gemini<br>
     <span style='color: #4FF7FF; letter-spacing: 2px;'>
         TEAM SILENT EXPLOIT
     </span>
