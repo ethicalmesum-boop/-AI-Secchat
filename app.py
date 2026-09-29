@@ -8,6 +8,7 @@ import streamlit as st
 import time
 import os
 import re
+import tempfile
 from pathlib import Path
 from google import genai
 from tee_layer import TEELayer
@@ -500,30 +501,35 @@ ADVICE: [what user should do]
 
 
 # ============================================
-# PAGE: VOICE DEEPFAKE DETECTOR (NEW)
+# PAGE: VOICE DEEPFAKE DETECTOR
+# Supports WAV, MP3, M4A, OGG, FLAC (auto-converts)
 # ============================================
 elif page == "voice":
     st.header("🎙️ Voice Deepfake Detector")
     st.write("Upload audio file — AI check karega human hai ya AI-generated")
     st.caption("⚠️ Detects AI voice clones used in vishing / voice fraud attacks")
+    st.caption("✅ Supports: WAV, MP3, M4A, OGG, FLAC")
 
     uploaded_audio = st.file_uploader(
         "Upload audio file:",
-        type=["wav", "mp3", "m4a", "ogg", "flac"],
+        type=["wav", "mp3", "m4a", "ogg", "flac", "aac"],
         key="voice_upload"
     )
 
     if uploaded_audio:
-        import tempfile
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-            tmp.write(uploaded_audio.read())
-            audio_path = tmp.name
+        # ---- Save uploaded file with ORIGINAL extension ----
+        ext = os.path.splitext(uploaded_audio.name)[1].lower() or ".wav"
+        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext)
+        tmp_file.write(uploaded_audio.read())
+        tmp_file.close()
+        audio_path = tmp_file.name
 
-        st.audio(uploaded_audio, format="audio/wav")
+        # Show audio player
+        st.audio(uploaded_audio)
         st.info(f"📁 File: {uploaded_audio.name} ({round(uploaded_audio.size / 1024, 2)} KB)")
 
         if st.button("🔍 Analyze Voice", key="voice_btn"):
-            with st.spinner("Analyzing audio features..."):
+            with st.spinner("Analyzing audio features... (auto-converting if needed)"):
                 result = voice_det.analyze(audio_path)
 
                 if result["success"]:
@@ -536,6 +542,13 @@ elif page == "voice":
                     st.rerun()
                 else:
                     st.error(f"Error: {result['error']}")
+
+        # Cleanup temp file
+        try:
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
+        except:
+            pass
 
     if "voice" in st.session_state.last_response:
         data = st.session_state.last_response["voice"]
@@ -574,8 +587,9 @@ elif page == "voice":
     st.markdown("---")
     st.markdown("### 🧪 How to Test")
     st.markdown("""
-    - 🎤 **Record your voice** → WAV file → Upload → Should say HUMAN
-    - 🤖 **AI voice generate karo** (ElevenLabs free) → Upload → Should say AI
+    - 🎤 **Record your voice** → Upload → Should say HUMAN
+    - 🤖 **AI voice generate karo** (ElevenLabs free) → Upload MP3 → Should say AI
+    - ✅ **Sab formats chalte hain** — WAV, MP3, M4A, OGG, FLAC
     """)
 
 

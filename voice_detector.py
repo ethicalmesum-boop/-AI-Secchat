@@ -1,27 +1,93 @@
 # ============================================
 # Voice Deepfake Detector
-# Uses only numpy + Python stdlib (no librosa!)
-# Supports WAV files
+# Supports MP3, WAV, M4A, OGG, FLAC
+# Uses numpy + ffmpeg (already installed)
 # ============================================
 
 import wave
 import struct
+import subprocess
+import tempfile
+import os
 import numpy as np
 
 
 class VoiceDeepfakeDetector:
     """
     Detects AI-generated voice using audio characteristics.
-    Lightweight - only needs numpy + wave (stdlib).
+    Auto-converts MP3/M4A/OGG to WAV using ffmpeg.
     """
+    
+    SUPPORTED_FORMATS = [".mp3", ".wav", ".m4a", ".ogg", ".flac", ".aac"]
     
     def __init__(self):
         pass
     
-    def analyze(self, audio_path):
-        """Analyze WAV audio file and predict if AI-generated."""
+    # ========================================
+    # Convert any audio to WAV using ffmpeg
+    # ========================================
+    def _convert_to_wav(self, input_path):
+        """
+        Convert input audio (MP3/M4A/OGG/etc) to 16kHz mono WAV.
+        Returns path to temp WAV file.
+        """
+        ext = os.path.splitext(input_path)[1].lower()
+        
+        # Agar already WAV hai toh check karo
+        if ext == ".wav":
+            try:
+                with wave.open(input_path, "rb") as w:
+                    if w.getsampwidth() == 2 and w.getframerate() == 16000:
+                        return input_path  # Already correct format
+            except:
+                pass  # Fall through to conversion
+        
+        # Convert using ffmpeg
+        temp_wav = tempfile.NamedTemporaryFile(
+            delete=False, suffix=".wav"
+        ).name
+        
         try:
-            with wave.open(audio_path, 'rb') as wav:
+            result = subprocess.run(
+                [
+                    "ffmpeg", "-y",
+                    "-i", input_path,
+                    "-ar", "16000",       # 16kHz sample rate
+                    "-ac", "1",           # mono
+                    "-c:a", "pcm_s16le",  # 16-bit PCM
+                    temp_wav
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if result.returncode != 0:
+                return None, f"ffmpeg error: {result.stderr[-200:]}"
+            
+            return temp_wav, None
+        except FileNotFoundError:
+            return None, "ffmpeg not found. Install: sudo apt install ffmpeg"
+        except Exception as e:
+            return None, f"Conversion failed: {str(e)}"
+    
+    # ========================================
+    # Main analyze function
+    # ========================================
+    def analyze(self, audio_path):
+        """Analyze any audio file (MP3/WAV/M4A/OGG)."""
+        temp_wav = None
+        try:
+            # ---- CONVERT TO WAV ----
+            wav_path, error = self._convert_to_wav(audio_path)
+            if error:
+                return {"success": False, "error": error}
+            
+            if wav_path != audio_path:
+                temp_wav = wav_path  # Track for cleanup
+            
+            # ---- LOAD WAV ----
+            with wave.open(wav_path, 'rb') as wav:
                 n_channels = wav.getnchannels()
                 sample_width = wav.getsampwidth()
                 framerate = wav.getframerate()
@@ -38,9 +104,10 @@ class VoiceDeepfakeDetector:
             if sample_width != 2:
                 return {
                     "success": False,
-                    "error": "Only 16-bit WAV supported."
+                    "error": "Unsupported audio format"
                 }
             
+            # ---- PARSE SAMPLES ----
             samples = np.array(
                 struct.unpack(f"<{n_frames * n_channels}h", frames),
                 dtype=np.float32
@@ -51,6 +118,7 @@ class VoiceDeepfakeDetector:
             
             samples = samples / 32768.0
             
+            # ---- FEATURE EXTRACTION ----
             amplitude = np.abs(samples)
             amp_std = float(np.std(amplitude))
             amp_mean = float(np.mean(amplitude))
@@ -72,11 +140,6 @@ class VoiceDeepfakeDetector:
             
             fft = np.fft.rfft(samples)
             magnitude = np.abs(fft)
-            freqs = np.fft.rfftfreq(len(samples), 1.0 / framerate)
-            if np.sum(magnitude) > 0:
-                spectral_centroid = float(np.sum(freqs * magnitude) / np.sum(magnitude))
-            else:
-                spectral_centroid = 0
             
             mag_nonzero = magnitude[magnitude > 0]
             if len(mag_nonzero) > 0:
@@ -86,6 +149,7 @@ class VoiceDeepfakeDetector:
             else:
                 spectral_flatness = 0
             
+            # ---- SCORING ----
             score = 0
             reasons = []
             
@@ -144,5 +208,12 @@ class VoiceDeepfakeDetector:
         except Exception as e:
             return {
                 "success": False,
-                "error": f"{str(e)} - Note: Only WAV files supported"
+                "error": f"{str(e)}"
             }
+        finally:
+            # Clean up temp file
+            if temp_wav and os.path.exists(temp_wav):
+                try:
+                    os.remove(temp_wav)
+                except:
+                    pass
